@@ -5,6 +5,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # Metro bundling a large Expo web app can exceed Node's default heap in CI.
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 # SPA fallback: serve real exported files first, otherwise hand off to the app
 # shell so client-side routes (and refreshes on sub-routes) resolve.
