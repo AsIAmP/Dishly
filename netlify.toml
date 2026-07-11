@@ -1,0 +1,14 @@
+# Netlify build config for the Dishly Expo web app.
+[build]
+  command = "npx expo export --platform web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA fallback: serve real exported files first, otherwise hand off to the app
+# shell so client-side routes (and refreshes on sub-routes) resolve.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
