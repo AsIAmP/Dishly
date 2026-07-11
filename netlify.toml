@@ -4,7 +4,9 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+  # Node 22+ is required: the static export prerenders routes in Node, and
+  # @supabase/supabase-js needs a global WebSocket (added in Node 22).
+  NODE_VERSION = "22"
   # Metro bundling a large Expo web app can exceed Node's default heap in CI.
   NODE_OPTIONS = "--max-old-space-size=4096"
 

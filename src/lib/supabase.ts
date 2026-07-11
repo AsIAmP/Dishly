@@ -36,7 +36,9 @@ export const supabase = createClient(
       ...(Platform.OS === 'web' ? {} : { storage: AsyncStorage }),
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: Platform.OS === 'web',
+      // Only true in a real browser — during the static-export prerender
+      // (Node) there's no `window`, so URL detection must be off.
+      detectSessionInUrl: Platform.OS === 'web' && typeof window !== 'undefined',
     },
   },
 );
