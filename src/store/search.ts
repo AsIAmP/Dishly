@@ -11,7 +11,7 @@ type SearchState = {
 };
 
 export const useSearch = create<SearchState>((set) => ({
-  scope: 'mine',
+  scope: 'ai',
   activeQuery: 'mushroom pasta',
   setScope: (scope) => set({ scope }),
   setQuery: (query) => set({ activeQuery: query }),

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Logo } from '@/components/Logo';
 import { ProgressHeader } from '@/components/ProgressHeader';
 import { SocialAuth } from '@/components/SocialAuth';
 import { TextField } from '@/components/TextField';
@@ -61,10 +62,13 @@ export default function SignInScreen() {
         <ProgressHeader label="Sign in" step={1} />
 
         <View className="mb-6 items-center">
-          <View className="flex-row items-center justify-center gap-2">
-            <Text className="font-display text-26 text-primary">Welcome to</Text>
-            <Text className="font-display-semibold text-26 text-accent">Dishly</Text>
-          </View>
+          <Text
+            className="font-display text-primary"
+            style={{ fontSize: 52, lineHeight: 58 }}
+          >
+            Welcome to
+          </Text>
+          <Logo size={150} />
           <Text className="mt-1.5 text-center font-body text-15 text-secondary">
             Sign in to save recipes and start cooking.
           </Text>

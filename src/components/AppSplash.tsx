@@ -1,4 +1,6 @@
-import { Image, View } from 'react-native';
+import { View } from 'react-native';
+
+import { Logo } from './Logo';
 
 /**
  * Full-screen splash shown for a couple of seconds on cold start, before the
@@ -8,11 +10,7 @@ import { Image, View } from 'react-native';
 export function AppSplash() {
   return (
     <View className="flex-1 items-center justify-center bg-background">
-      <Image
-        source={require('../../assets/images/logo.png')}
-        style={{ width: 300, height: 300 }}
-        resizeMode="contain"
-      />
+      <Logo size={300} />
     </View>
   );
 }

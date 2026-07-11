@@ -1,28 +1,15 @@
-import { Text, View } from 'react-native';
+import { Image } from 'react-native';
 
 /**
- * Dishly wordmark — the brand name in the display serif (green) with a small
- * circular "AI" badge, echoing the logo. Vector/text based, so it scales
- * crisply and themes with the accent color. `size` is the wordmark font size.
+ * The Dishly logo image, sized square. Used on the splash and the sign-in
+ * welcome. `size` is both width and height (the artwork is square).
  */
-export function Logo({ size = 34 }: { size?: number }) {
-  const badge = Math.round(size * 0.44);
+export function Logo({ size = 300 }: { size?: number }) {
   return (
-    <View className="flex-row items-start">
-      <Text
-        className="font-display-semibold text-accent"
-        style={{ fontSize: size, lineHeight: size * 1.12 }}
-      >
-        Dishly
-      </Text>
-      <View
-        className="items-center justify-center rounded-full bg-accent"
-        style={{ width: badge, height: badge, marginLeft: size * 0.12, marginTop: size * 0.06 }}
-      >
-        <Text className="font-body-bold text-on-accent" style={{ fontSize: badge * 0.48 }}>
-          AI
-        </Text>
-      </View>
-    </View>
+    <Image
+      source={require('../../assets/images/logo.png')}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
   );
 }
