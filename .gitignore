@@ -45,3 +45,6 @@ example
 
 # Web export build output
 /dist/
+
+# Netlify CLI local state
+.netlify
