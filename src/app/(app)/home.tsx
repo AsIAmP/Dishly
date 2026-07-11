@@ -3,10 +3,10 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CameraIcon, MicIcon, UploadIcon } from '@/components/icons';
+import { AppMenu } from '@/components/AppMenu';
+import { CameraIcon, LinkIcon, MicIcon, UploadIcon } from '@/components/icons';
 import { TextField } from '@/components/TextField';
 import { useVoiceSearch } from '@/hooks/useVoiceSearch';
-import { useAuth } from '@/store/auth';
 import { useSearch } from '@/store/search';
 
 /**
@@ -21,7 +21,6 @@ export default function HomeScreen() {
   const scope = useSearch((s) => s.scope);
   const setScope = useSearch((s) => s.setScope);
   const setQuery = useSearch((s) => s.setQuery);
-  const signOut = useAuth((s) => s.signOut);
 
   const [typed, setTyped] = useState('');
 
@@ -54,6 +53,15 @@ export default function HomeScreen() {
       ? 'Tap & say what you’re craving'
       : 'Tap & name a saved dish';
 
+  // Compact "live search status" shown in the top-left status bar.
+  const statusText = listening
+    ? '● Listening…'
+    : voice.status === 'error'
+      ? 'Voice unavailable — type below'
+      : scope === 'ai'
+        ? 'Ready — find via AI'
+        : 'Ready — my recipes';
+
   const segment = (active: boolean) =>
     `flex-1 items-center rounded-full py-2.5 ${active ? 'bg-accent' : ''}`;
   const segmentText = (active: boolean) =>
@@ -62,24 +70,18 @@ export default function HomeScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       <View className="flex-1 px-gutter pb-7 pt-4">
-        {/* Top bar: wordmark + sign out */}
-        <View className="mb-3 flex-row items-center justify-between">
-          <Text className="font-display-semibold text-18 text-accent">Dishly</Text>
-          <Pressable
-            onPress={() => {
-              signOut();
-              router.replace('/signin');
-            }}
-            className="rounded-full border-border px-3 py-1.5 active:opacity-70"
-            style={{ borderWidth: 1.5 }}
+        {/* Top bar: live search status (left) + menu (right) */}
+        <View className="mb-3 flex-row items-center gap-3">
+          <View
+            className="flex-1 flex-row items-center rounded-full border-border bg-surface px-4"
+            style={{ borderWidth: 1.5, height: 40 }}
           >
-            <Text className="font-body-semibold text-12 text-secondary">Sign out</Text>
-          </Pressable>
+            <Text className="font-body-medium text-12 text-secondary" numberOfLines={1}>
+              {statusText}
+            </Text>
+          </View>
+          <AppMenu />
         </View>
-
-        <Text className="mb-3 text-center font-body text-12 text-secondary">
-          Search by voice, type it, snap a photo, or upload
-        </Text>
 
         <View
           className="mb-4 flex-row rounded-full border-border bg-surface"
@@ -153,6 +155,14 @@ export default function HomeScreen() {
           >
             <CameraIcon size={20} />
             <Text className="font-body-semibold text-12 text-primary">Camera</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/import')}
+            className="flex-1 items-center justify-center gap-1.5 rounded-lg border-border bg-surface active:opacity-90"
+            style={{ height: 76, borderWidth: 1.5 }}
+          >
+            <LinkIcon size={20} />
+            <Text className="font-body-semibold text-12 text-primary">Paste URL</Text>
           </Pressable>
           <Pressable
             onPress={() => router.push({ pathname: '/camera', params: { mode: 'upload' } })}

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppMenu } from '@/components/AppMenu';
 import { PhotoCapture } from '@/components/PhotoCapture';
 import { TextField } from '@/components/TextField';
 import { RECOGNIZED_RECIPE } from '@/data/recipes';
@@ -44,9 +45,12 @@ export default function CameraScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       <View className="flex-1 px-gutter pb-5 pt-4">
-        <Pressable onPress={() => router.back()} className="mb-3.5 active:opacity-70">
-          <Text className="font-body-semibold text-14 text-primary">← Back</Text>
-        </Pressable>
+        <View className="mb-3.5 flex-row items-center justify-between">
+          <Pressable onPress={() => router.back()} className="active:opacity-70">
+            <Text className="font-body-semibold text-14 text-primary">← Back</Text>
+          </Pressable>
+          <AppMenu />
+        </View>
 
         <View className="mb-3.5 flex-1">
           <PhotoCapture

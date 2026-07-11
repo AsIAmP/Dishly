@@ -60,13 +60,15 @@ export default function SignInScreen() {
       <View className="flex-1 px-screen pb-7 pt-6">
         <ProgressHeader label="Sign in" step={1} />
 
-        <View className="mb-2.5 flex-row items-center gap-2">
-          <Text className="font-display text-26 text-primary">Welcome to</Text>
-          <Text className="font-display-semibold text-26 text-accent">Dishly</Text>
+        <View className="mb-6 items-center">
+          <View className="flex-row items-center justify-center gap-2">
+            <Text className="font-display text-26 text-primary">Welcome to</Text>
+            <Text className="font-display-semibold text-26 text-accent">Dishly</Text>
+          </View>
+          <Text className="mt-1.5 text-center font-body text-15 text-secondary">
+            Sign in to save recipes and start cooking.
+          </Text>
         </View>
-        <Text className="mb-6 font-body text-15 text-secondary">
-          Sign in to save recipes and start cooking.
-        </Text>
 
         {!configured ? (
           <View className="mb-5 rounded-md bg-accent-tint-strong px-3.5 py-3">

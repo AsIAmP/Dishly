@@ -51,3 +51,22 @@ export function UploadIcon({ size = 20, color = colors.primary }: IconProps) {
     </Svg>
   );
 }
+
+export function LinkIcon({ size = 20, color = colors.primary }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M10 13a5 5 0 007.07 0l2.5-2.5a5 5 0 00-7.07-7.07L11 5"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M14 11a5 5 0 00-7.07 0l-2.5 2.5a5 5 0 007.07 7.07L13 19"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}

@@ -1,20 +1,32 @@
-import { Image } from 'expo-image';
+import { useState } from 'react';
+import { Image, StyleSheet } from 'react-native';
 
 import { PhotoPlaceholder } from './PhotoPlaceholder';
 
 /**
- * Renders a captured/uploaded favorite photo when we have its data URL, else
- * falls back to the warm placeholder (recipe favorites and native captures have
- * no stored image). Fills its parent; the parent controls aspect ratio.
+ * Renders a photo (recipe hero, catalog image, or a captured/uploaded favorite)
+ * over the warm placeholder. The placeholder is always the base layer, so if
+ * there's no `uri` — or the image fails to load — it shows through. The parent
+ * controls aspect ratio.
+ *
+ * Uses React Native's Image (not expo-image): on web it displays via a
+ * background-image and does NOT force CORS, so remote hosts without CORS headers
+ * (e.g. the catalog's stock photos) still render. Data-URI captures work too.
  */
 export function CapturedImage({ uri, caption }: { uri?: string; caption?: string }) {
-  if (!uri) return <PhotoPlaceholder caption={caption} />;
+  const [failed, setFailed] = useState(false);
+
   return (
-    <Image
-      source={{ uri }}
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-      contentFit="cover"
-      transition={150}
-    />
+    <>
+      <PhotoPlaceholder caption={caption} />
+      {uri && !failed ? (
+        <Image
+          source={{ uri }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+          onError={() => setFailed(true)}
+        />
+      ) : null}
+    </>
   );
 }

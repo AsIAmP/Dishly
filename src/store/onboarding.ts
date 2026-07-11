@@ -20,6 +20,13 @@ type OnboardingState = {
   toggleAllergen: (key: string) => void;
   complete: () => void;
   reset: () => void;
+  /** Replace all answers from a persisted profile (Supabase) on sign-in. */
+  hydrate: (data: {
+    skill: string | null;
+    dietary: string[];
+    allergens: string[];
+    completed: boolean;
+  }) => void;
 };
 
 function toggleWithNone(list: string[], key: string): string[] {
@@ -43,6 +50,13 @@ export const useOnboarding = create<OnboardingState>((set) => ({
   toggleAllergen: (key) => set((s) => ({ allergens: toggleWithNone(s.allergens, key) })),
   complete: () => set({ completed: true }),
   reset: () => set({ skill: null, dietary: [], allergens: [], completed: false }),
+  hydrate: (data) =>
+    set({
+      skill: data.skill,
+      dietary: data.dietary,
+      allergens: data.allergens,
+      completed: data.completed,
+    }),
 }));
 
 /** Active dietary/allergen filters, with "none" normalized to an empty set. */

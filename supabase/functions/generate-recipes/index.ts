@@ -31,8 +31,9 @@ const json = (body: unknown, status = 200) =>
 
 // The JSON shape we force OpenAI to return, mirroring the app's Recipe type.
 const SYSTEM_PROMPT = `You are a recipe generator for a cooking app called Dishly.
-Given a user's craving, return 1-3 recipes as strict JSON. Respect the user's
-dietary preferences and NEVER include their listed allergens as ingredients.
+Given a user's craving, return EXACTLY 3 distinct recipes as strict JSON (never
+fewer). Respect the user's dietary preferences and NEVER include their listed
+allergens as ingredients.
 Each recipe object must have exactly these fields:
   id (kebab-case slug, prefix "ai-"),
   title (string),
@@ -40,8 +41,12 @@ Each recipe object must have exactly these fields:
   rating (null),
   prep (integer minutes), cook (integer minutes),
   difficulty ("Easy" | "Medium" | "Hard"),
-  dietary (string[] lowercase, e.g. ["vegan"]),
-  allergens (string[] lowercase),
+  dietary (string[] lowercase — every applicable tag the dish satisfies, e.g. a
+    dish with no meat/dairy/eggs is ["vegan","vegetarian"]),
+  allergens (string[] lowercase — ONLY the major allergens the dish actually
+    CONTAINS, from: peanuts, tree nuts, dairy, egg, gluten, soy, shellfish,
+    fish. Use [] when it contains none. NEVER list an allergen the user asked to
+    avoid — the recipe must not contain it, so it does not belong here),
   calories (string like "520 kcal per serving · Serves 2"),
   ingredients (array of { name: string, g?: number, text?: string }),
   steps (array of { n: integer, min: integer, template: string }).

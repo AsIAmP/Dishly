@@ -37,6 +37,11 @@ export type Recipe = {
   calories: string;
   ingredients: Ingredient[];
   steps: Step[];
+  /** Optional hero photo URL. Falls back to the placeholder when absent or if
+   *  the image fails to load. A user-attached photo overrides this at runtime. */
+  image?: string;
+  /** Set when the recipe was imported from a web page. */
+  sourceUrl?: string;
 };
 
 export const RECIPES: Recipe[] = [
@@ -44,6 +49,7 @@ export const RECIPES: Recipe[] = [
     id: 'mushroom-tagliatelle',
     title: 'Mushroom Tagliatelle',
     author: 'Elena Marchetti',
+    image: 'https://loremflickr.com/800/600/mushroom,pasta?lock=11',
     rating: 4.8,
     prep: 10,
     cook: 20,
@@ -71,6 +77,7 @@ export const RECIPES: Recipe[] = [
     id: 'buddha-bowl',
     title: 'Vegan Buddha Bowl',
     author: 'Priya Nandan',
+    image: 'https://loremflickr.com/800/600/buddha,bowl,salad?lock=22',
     rating: 4.6,
     prep: 15,
     cook: 15,
@@ -97,6 +104,7 @@ export const RECIPES: Recipe[] = [
     id: 'shrimp-scampi',
     title: 'Shrimp Scampi',
     author: 'Marco Belline',
+    image: 'https://loremflickr.com/800/600/shrimp,pasta?lock=33',
     rating: 4.7,
     prep: 10,
     cook: 15,
@@ -177,6 +185,16 @@ export const SKILL_LEVELS = [
   { key: 'intermediate', title: 'Intermediate', sub: 'Comfortable following recipes' },
   { key: 'advanced', title: 'Advanced', sub: 'I improvise most nights' },
 ] as const;
+
+/**
+ * The skill level a recipe is suited to, derived from its own difficulty (which
+ * reflects the dish's complexity, not the cook's ability). This is why the
+ * user's skill level is never sent to the AI — the label is a property of the
+ * recipe, mapped 1:1 from difficulty.
+ */
+export function recipeSkillLevel(difficulty: Difficulty): 'Beginner' | 'Intermediate' | 'Advanced' {
+  return difficulty === 'Easy' ? 'Beginner' : difficulty === 'Medium' ? 'Intermediate' : 'Advanced';
+}
 
 // --- Unit conversion (g/oz toggle affects ingredients AND steps) --------------
 export type Unit = 'g' | 'oz';

@@ -1,13 +1,16 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppMenu } from '@/components/AppMenu';
 import { CapturedImage } from '@/components/CapturedImage';
 import { Checkbox } from '@/components/Checkbox';
-import { PhotoPlaceholder } from '@/components/PhotoPlaceholder';
-import { ALL_RECIPES_BY_ID, formatAmount, stepText } from '@/data/recipes';
+import { Loader } from '@/components/Loader';
+import { PhotoCapture } from '@/components/PhotoCapture';
+import { ALL_RECIPES_BY_ID, formatAmount, recipeSkillLevel, stepText } from '@/data/recipes';
 import { useFavorites, useAddRecipeFavorite } from '@/hooks/useFavorites';
+import { useRecipePhoto, useSaveRecipePhoto } from '@/hooks/useRecipePhoto';
 import { useRecipe } from '@/hooks/useRecipes';
 import { isRecipeFavorited, type Favorite } from '@/data/api';
 import { selectActiveFilters, useOnboarding } from '@/store/onboarding';
@@ -53,6 +56,11 @@ export default function RecipeDetailScreen() {
   const checks = useRecipeView((s) => s.checks);
   const toggleCheck = useRecipeView((s) => s.toggleCheck);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
+
+  // User-attached photo for this recipe (overrides the default hero image).
+  const { data: userPhoto } = useRecipePhoto(isPhotoOnly ? undefined : id);
+  const savePhoto = useSaveRecipePhoto(id);
 
   const dietary = useOnboarding((s) => s.dietary);
   const allergens = useOnboarding((s) => s.allergens);
@@ -80,8 +88,6 @@ export default function RecipeDetailScreen() {
 
   const alreadySaved = recipe && favorites ? isRecipeFavorited(favorites, recipe.id) : false;
 
-  const heroTop = insets.top + 16;
-
   // ----- Photo-only favorite (captured photo, optionally recognized) ----------
   if (isPhotoOnly) {
     const recognized = photoFavorite?.recipeId
@@ -89,13 +95,20 @@ export default function RecipeDetailScreen() {
       : undefined;
     return (
       <View className="flex-1 bg-background">
+        <View style={{ paddingTop: insets.top }}>
+          <View className="flex-row items-center justify-between px-gutter py-3">
+            <Pressable onPress={() => router.back()} className="active:opacity-70">
+              <Text className="font-body-semibold text-14 text-primary">← Back</Text>
+            </Pressable>
+            <AppMenu />
+          </View>
+        </View>
         <ScrollView
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           showsVerticalScrollIndicator={false}
         >
           <View style={{ aspectRatio: 4 / 3 }} className="relative">
             <CapturedImage uri={photoFavorite?.imageUri} caption="Captured photo" />
-            <HeroButton label="←" onPress={() => router.back()} top={heroTop} />
           </View>
           <View className="px-gutter pt-4">
             <Text className="mb-1.5 font-display text-24 text-primary">
@@ -110,11 +123,34 @@ export default function RecipeDetailScreen() {
     );
   }
 
-  if (isLoading || !recipe) {
+  if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator color={colors.accent} />
+        <Loader label="Loading recipe…" />
       </View>
+    );
+  }
+
+  if (!recipe) {
+    return (
+      <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
+        <View className="flex-1 items-center justify-center px-gutter">
+          <Text className="mb-2 text-center font-body-bold text-15 text-primary">
+            Recipe unavailable
+          </Text>
+          <Text className="mb-5 text-center font-body text-13 text-secondary">
+            This recipe couldn’t be loaded. AI recipes saved before this update can’t be
+            restored — search again to regenerate it.
+          </Text>
+          <Pressable
+            onPress={() => router.back()}
+            className="rounded-full border-accent px-5 py-2.5 active:opacity-80"
+            style={{ borderWidth: 1.5 }}
+          >
+            <Text className="font-body-bold text-13 text-accent">← Back</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -123,17 +159,29 @@ export default function RecipeDetailScreen() {
   const unitTabText = (active: boolean) =>
     `font-body-bold text-12 ${active ? 'text-on-accent' : 'text-secondary'}`;
 
+  // A user-attached photo wins over the recipe's default image.
+  const heroUri = userPhoto ?? recipe.image;
+
   return (
     <View className="flex-1 bg-background">
+      {/* Header row: Back · menu */}
+      <View style={{ paddingTop: insets.top }}>
+        <View className="flex-row items-center justify-between px-gutter py-3">
+          <Pressable onPress={() => router.back()} className="active:opacity-70">
+            <Text className="font-body-semibold text-14 text-primary">← Back</Text>
+          </Pressable>
+          <AppMenu />
+        </View>
+      </View>
+
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 12 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero */}
         <View style={{ aspectRatio: 4 / 3 }} className="relative">
-          <PhotoPlaceholder caption="Hero photo of the dish" />
-          <HeroButton label="←" onPress={() => router.back()} top={heroTop} />
-          <HeroButton label="i" onPress={() => setInfoOpen((v) => !v)} top={heroTop} right accent />
+          <CapturedImage uri={heroUri} caption="Hero photo of the dish" />
+          <HeroButton label="i" onPress={() => setInfoOpen((v) => !v)} top={12} right accent />
         </View>
 
         {infoOpen ? (
@@ -151,13 +199,30 @@ export default function RecipeDetailScreen() {
           </View>
         ) : null}
 
-        {/* Title · author · rating */}
+        {/* Title · author · rating + the recipe's skill level */}
         <View className="px-gutter pt-4">
           <Text className="mb-1.5 font-display text-24 text-primary">{recipe.title}</Text>
-          <Text className="font-body text-13 text-secondary">
+          <Text className="mb-2 font-body text-13 text-secondary">
             {recipe.author}
             {recipe.rating != null ? ` · ★ ${recipe.rating}` : ''}
           </Text>
+          <View className="flex-row">
+            <View className="rounded-full bg-accent-tint px-2.5 py-1">
+              <Text className="font-body-bold text-11 text-accent">
+                🍳 {recipeSkillLevel(recipe.difficulty)}
+              </Text>
+            </View>
+          </View>
+
+          <Pressable
+            onPress={() => setPhotoOpen(true)}
+            className="mt-3 flex-row items-center justify-center rounded-md border-border bg-surface active:opacity-90"
+            style={{ height: 44, borderWidth: 1.5 }}
+          >
+            <Text className="font-body-semibold text-13 text-primary">
+              📷 {userPhoto ? 'Change photo' : 'Add a photo'}
+            </Text>
+          </Pressable>
         </View>
 
         {/* Allergen flags (from onboarding answers) */}
@@ -171,7 +236,7 @@ export default function RecipeDetailScreen() {
           </View>
         ) : null}
 
-        {/* Ingredients */}
+        {/* Ingredients — g/oz toggle right-aligned; applies to ingredients + steps */}
         <View className="px-gutter pt-5">
           <View className="mb-3 flex-row items-center justify-between">
             <Text className="font-body-bold text-13 text-primary">
@@ -247,6 +312,39 @@ export default function RecipeDetailScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* Add / change the recipe's photo (reuses the capture/upload flow) */}
+      <Modal
+        visible={photoOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPhotoOpen(false)}
+      >
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(31,27,22,0.4)' }}>
+          <View
+            className="rounded-t-xl bg-background px-gutter pb-6 pt-4"
+            style={{ height: 460 }}
+          >
+            <View className="mb-3 flex-row items-center justify-between">
+              <Text className="font-body-bold text-15 text-primary">Add a photo</Text>
+              <Pressable onPress={() => setPhotoOpen(false)} className="active:opacity-70">
+                <Text className="font-body-semibold text-14 text-secondary">Close</Text>
+              </Pressable>
+            </View>
+            <View className="flex-1">
+              <PhotoCapture
+                mode="upload"
+                captured={null}
+                onCapture={(uri) => {
+                  savePhoto.mutate(uri);
+                  setPhotoOpen(false);
+                }}
+                onClear={() => {}}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

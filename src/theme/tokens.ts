@@ -31,11 +31,11 @@ export const colors = {
   tertiary: '#A39C90', // hints, skip links
   'body-muted': '#6B6459', // info panel body text
 
-  // accent
-  accent: '#E8622C', // the single accent — CTAs, selection
-  'accent-tint': '#FDEEE7', // soft accent fill (selected pills, mic button)
-  'accent-tint-strong': '#FCE3D6', // allergen flag background
-  'accent-muted': '#F0C4AE', // disabled primary button
+  // accent — Dishly brand green (from the logo)
+  accent: '#1C6E4A', // the single accent — CTAs, selection
+  'accent-tint': '#E7F1EC', // soft accent fill (selected pills, mic button)
+  'accent-tint-strong': '#D3E7DC', // allergen flag background
+  'accent-muted': '#A6C9B6', // disabled primary button
   'on-accent': '#FFFFFF', // text/icon on accent
 
   // status

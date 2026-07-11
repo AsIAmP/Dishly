@@ -3,25 +3,65 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppMenu } from '@/components/AppMenu';
+import { Loader } from '@/components/Loader';
 import { RecipeCard } from '@/components/RecipeCard';
-import { AI_STEPS, generateRecipesForQuery, rankRecipes } from '@/data/ai';
-import type { Recipe } from '@/data/recipes';
-import { useRecipes } from '@/hooks/useRecipes';
+import { AI_STEPS, generatedById, rankRecipes } from '@/data/ai';
+import type { Favorite } from '@/data/api';
+import { ALL_RECIPES_BY_ID, RECIPES, type Recipe } from '@/data/recipes';
+import { useFavorites } from '@/hooks/useFavorites';
+import { useAiRecipes } from '@/hooks/useRecipes';
 import { selectActiveFilters, useOnboarding } from '@/store/onboarding';
 import { useSearch } from '@/store/search';
 import { colors } from '@/theme/tokens';
 
-/** Drop recipes that collide with the user's allergens; keep dietary matches. */
-function applyPrefs(recipes: Recipe[], dietary: string[], allergens: string[]) {
-  return recipes.filter(
-    (r) =>
-      (dietary.length === 0 || r.dietary.some((d) => dietary.includes(d))) &&
-      !r.allergens.some((a) => allergens.includes(a)),
-  );
+/** Resolve a saved favorite to a full Recipe (from the catalog or the runtime
+ *  cache), or a minimal card when its data can't be restored. */
+function favoriteToRecipe(fav: Favorite): Recipe | null {
+  const id = fav.kind === 'recipe' ? fav.recipeId : fav.recipeId;
+  if (!id) return null;
+  const full = ALL_RECIPES_BY_ID[id] ?? generatedById[id];
+  if (full) return full;
+  if (fav.kind !== 'recipe') return null;
+  return {
+    id,
+    title: fav.title,
+    author: '',
+    image: fav.image,
+    rating: null,
+    prep: 0,
+    cook: 0,
+    difficulty: fav.difficulty ?? 'Easy',
+    dietary: [],
+    allergens: [],
+    calories: '',
+    ingredients: [],
+    steps: [],
+  };
 }
 
-/** The staged progress list shown while AI results generate. */
-function AiPipeline({ current }: { current: number }) {
+/**
+ * Safety net for AI results: the model was already told to honor dietary +
+ * allergen prefs, so we don't re-filter on dietary (that over-drops, e.g. a
+ * vegan dish for a "vegetarian" user). We only drop a recipe if it *declares*
+ * it contains an allergen the user avoids.
+ */
+function dropAllergenConflicts(recipes: Recipe[], allergens: string[]) {
+  return recipes.filter((r) => !r.allergens.some((a) => allergens.includes(a)));
+}
+
+/** The staged progress list shown while AI results generate. Self-animates
+ *  through the stages; the last stage stays "active" until results replace it. */
+function AiPipeline() {
+  const [current, setCurrent] = useState(0);
+  useEffect(() => {
+    const t1 = setTimeout(() => setCurrent(1), 500);
+    const t2 = setTimeout(() => setCurrent(2), 1100);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
   return (
     <View className="gap-3 px-gutter pt-6">
       <Text className="font-body-bold text-13 text-primary">Dishly AI is working…</Text>
@@ -64,39 +104,48 @@ export default function ResultsScreen() {
   const activeQuery = useSearch((s) => s.activeQuery);
   const dietary = useOnboarding((s) => s.dietary);
   const allergens = useOnboarding((s) => s.allergens);
-  const { data: recipes, isLoading } = useRecipes();
+  const { data: favorites, isLoading } = useFavorites();
 
   const prefs = selectActiveFilters({ dietary, allergens });
 
-  // --- "my recipes": rank the local cookbook by the query, then apply prefs ---
+  // "My recipes" = the user's saved favorites (resolved to full recipes) plus
+  // the built-in catalog, de-duplicated.
+  const myRecipes = useMemo(() => {
+    const out: Recipe[] = [];
+    const seen = new Set<string>();
+    for (const fav of favorites ?? []) {
+      const recipe = favoriteToRecipe(fav);
+      if (recipe && !seen.has(recipe.id)) {
+        seen.add(recipe.id);
+        out.push(recipe);
+      }
+    }
+    for (const recipe of RECIPES) {
+      if (!seen.has(recipe.id)) {
+        seen.add(recipe.id);
+        out.push(recipe);
+      }
+    }
+    return out;
+  }, [favorites]);
+
+  // --- "my recipes": rank the user's saved + catalog recipes by the query -----
   const mineResults = useMemo(() => {
     if (scope !== 'mine') return [] as Recipe[];
-    const ranked = rankRecipes(recipes ?? [], activeQuery);
-    return applyPrefs(ranked, prefs.dietary, prefs.allergens);
-  }, [scope, recipes, activeQuery, prefs.dietary, prefs.allergens]);
+    return rankRecipes(myRecipes, activeQuery);
+  }, [scope, myRecipes, activeQuery]);
 
-  // --- "find via AI": run the staged generation pipeline for the query --------
-  const [aiStep, setAiStep] = useState(0);
-  const [aiResults, setAiResults] = useState<Recipe[] | null>(null);
-
-  useEffect(() => {
-    if (scope !== 'ai') return;
-    let alive = true;
-    setAiResults(null);
-    setAiStep(0);
-    generateRecipesForQuery(
-      activeQuery,
-      (i) => alive && setAiStep(i + 1),
-      { dietary: prefs.dietary, allergens: prefs.allergens },
-    ).then((res) => {
-      if (alive) setAiResults(applyPrefs(res, prefs.dietary, prefs.allergens));
-    });
-    return () => {
-      alive = false;
-    };
-    // Re-run only when the query or scope changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, activeQuery]);
+  // --- "find via AI": cached generation (runs once per query, no reshuffle) ---
+  const { data: aiData } = useAiRecipes(
+    activeQuery,
+    prefs.dietary,
+    prefs.allergens,
+    scope === 'ai',
+  );
+  const aiResults = useMemo(
+    () => (aiData ? dropAllergenConflicts(aiData, prefs.allergens) : null),
+    [aiData, prefs.allergens],
+  );
 
   const busy = scope === 'mine' ? isLoading : aiResults === null;
   const list = scope === 'mine' ? mineResults : (aiResults ?? []);
@@ -104,15 +153,21 @@ export default function ResultsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       <View className="px-gutter pt-4">
-        <Pressable
-          onPress={() => router.back()}
-          className="mb-1 flex-row items-center gap-2 active:opacity-70"
-        >
-          <Text className="font-body-semibold text-14 text-primary">←</Text>
-          <Text className="font-body-medium text-14 italic text-secondary">
-            &ldquo;{activeQuery}&rdquo;
-          </Text>
-        </Pressable>
+        <View className="mb-1 flex-row items-center justify-between gap-3">
+          <Pressable
+            onPress={() => router.back()}
+            className="flex-1 flex-row items-center gap-2 active:opacity-70"
+          >
+            <Text className="font-body-semibold text-14 text-primary">←</Text>
+            <Text
+              className="flex-1 font-body-medium text-14 italic text-secondary"
+              numberOfLines={1}
+            >
+              &ldquo;{activeQuery}&rdquo;
+            </Text>
+          </Pressable>
+          <AppMenu />
+        </View>
         <Text className="mb-3 font-body text-12 text-tertiary">
           {scope === 'ai' ? 'Generated via Dishly AI' : 'From your recipes'}
         </Text>
@@ -120,10 +175,10 @@ export default function ResultsScreen() {
 
       {busy ? (
         scope === 'ai' ? (
-          <AiPipeline current={aiStep} />
+          <AiPipeline />
         ) : (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator color={colors.accent} />
+            <Loader label="Searching your recipes…" />
           </View>
         )
       ) : (

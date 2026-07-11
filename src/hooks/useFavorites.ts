@@ -4,6 +4,7 @@ import {
   addPhotoFavorite,
   addRecipeFavorite,
   fetchFavorites,
+  removeFavorite,
   type Favorite,
 } from '@/data/api';
 import type { Recipe } from '@/data/recipes';
@@ -17,6 +18,14 @@ export function useAddRecipeFavorite() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (recipe: Recipe) => addRecipeFavorite(recipe),
+    onSuccess: (favorites) => qc.setQueryData<Favorite[]>(queryKeys.favorites, favorites),
+  });
+}
+
+export function useRemoveFavorite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => removeFavorite(id),
     onSuccess: (favorites) => qc.setQueryData<Favorite[]>(queryKeys.favorites, favorites),
   });
 }

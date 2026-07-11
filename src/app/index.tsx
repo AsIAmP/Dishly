@@ -1,10 +1,9 @@
 import { Redirect } from 'expo-router';
 import { View } from 'react-native';
-import { ActivityIndicator } from 'react-native';
 
+import { Loader } from '@/components/Loader';
 import { useAuth } from '@/store/auth';
 import { useOnboarding } from '@/store/onboarding';
-import { colors } from '@/theme/tokens';
 
 /**
  * Entry gate. Order of checks:
@@ -18,12 +17,15 @@ import { colors } from '@/theme/tokens';
  */
 export default function Index() {
   const status = useAuth((s) => s.status);
+  const profileLoaded = useAuth((s) => s.profileLoaded);
   const completed = useOnboarding((s) => s.completed);
 
-  if (status === 'loading') {
+  // Wait for both the session AND the persisted profile before routing, so a
+  // returning user isn't briefly sent to onboarding before their prefs load.
+  if (status === 'loading' || (status === 'signedIn' && !profileLoaded)) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator color={colors.accent} />
+        <Loader />
       </View>
     );
   }
